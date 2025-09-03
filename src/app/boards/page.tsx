@@ -32,8 +32,8 @@ export default function BoardsPage() {
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
-  //   //add async because network requests (GraphQL mutations) are asynchronous.
-  //   //use await so our code waits for the response before moving on.
+  //   add async because network requests (GraphQL mutations) are asynchronous.
+  //   use await so our code waits for the response before moving on.
 
   const handleAddBoard = async () => {
     const title = prompt("Enter board name:");
@@ -61,52 +61,71 @@ export default function BoardsPage() {
   };
 
   return (
-    <div className="p-6" style={{ color: "violet" }}>
-      <h1 className="text-2xl font-bold mb-4">Boards</h1>
-      <button
-        onClick={handleAddBoard}
-        className="px-3 py-1 mb-4 bg-violet-600 text-white rounded"
-      >
-        ➕ Add Board
-      </button>
+    <div className="h-screen bg-gray-100 p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-violet-700">Trello Clone</h1>
+        <button
+          onClick={handleAddBoard}
+          className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg shadow"
+        >
+          ➕ Add Board
+        </button>
+      </div>
 
-      {data.boards.map((board: any) => (
-        <div key={board.id} className="mb-6">
-          <h2 className="text-xl font-semibold">{board.title}</h2>
-
-          <button
-            onClick={() => handleAddList(board.id)}
-            className="ml-2 px-2 py-1 text-sm bg-blue-500 text-white rounded"
+      {/* Boards in horizontal row */}
+      <div className="flex space-x-6 overflow-x-auto pb-4">
+        {data.boards.map((board: any) => (
+          <div
+            key={board.id}
+            className="bg-white rounded-xl shadow-lg p-4 w-80 flex-shrink-0"
           >
-            ➕ Add List
-          </button>
+            <h2 className="text-lg font-bold text-gray-800">{board.title}</h2>
 
-          {board.lists.map((list: any) => (
-            <div key={list.id} className="ml-6 mb-3">
-              <h3 className="font-medium">{list.title}</h3>
+            <button
+              onClick={() => handleAddList(board.id)}
+              className="w-full mb-3 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+            >
+              ➕ Add List
+            </button>
 
-              <button
-                onClick={() => handleAddTask(list.id)}
-                className="ml-2 px-2 py-1 text-sm bg-green-500 text-white rounded"
-              >
-                ➕ Add Task
-              </button>
+            <div className="space-y-4">
+              {board.lists.map((list: any) => (
+                <div
+                  key={list.id}
+                  className="bg-gray-50 rounded-lg shadow-inner p-3"
+                >
+                  <h3 className="font-medium text-gray-700 mb-2">
+                    {list.title}
+                  </h3>
 
-              <ul className="ml-6 list-disc">
-                {list.tasks.map((task: any) => (
-                  <li
-                    key={task.id}
-                    onClick={() => handleToggleTask(task.id)}
-                    className="cursor-pointer"
+                  <button
+                    onClick={() => handleAddTask(list.id)}
+                    className="w-full mb-2 px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded"
                   >
-                    {task.title} {task.completed ? "✅" : "❌"}
-                  </li>
-                ))}
-              </ul>
+                    ➕ Add Task
+                  </button>
+
+                  <ul className="space-y-2">
+                    {list.tasks.map((task: any) => (
+                      <li
+                        key={task.id}
+                        onClick={() => handleToggleTask(task.id)}
+                        className={`p-2 rounded-lg shadow cursor-pointer transition ${
+                          task.completed
+                            ? "bg-green-200 line-through"
+                            : "bg-white hover:bg-gray-100"
+                        }`}
+                      >
+                        {task.title}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
