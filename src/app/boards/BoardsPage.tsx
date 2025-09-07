@@ -1,7 +1,9 @@
 "use client";
+
 import { useState } from "react";
 import { useQuery, useMutation } from "@apollo/client";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
+
 import {
   GET_BOARDS,
   MOVE_TASK,
@@ -11,13 +13,14 @@ import {
 } from "../../../lib/graphql";
 import Board from "./Board";
 import DeleteModal from "./DeleteModal";
+import AuthGuard from "../../components/AuthGuard";
+import LogoutButton from "../../components/LogoutButton";
 
-export default function BoardsPage() {
+function BoardsPageContent() {
   const { loading, error, data } = useQuery(GET_BOARDS);
   const [moveTask] = useMutation(MOVE_TASK, {
     refetchQueries: [{ query: GET_BOARDS }],
   });
-  // Mutations for deleting
   const [deleteBoard] = useMutation(DELETE_BOARD, {
     refetchQueries: [{ query: GET_BOARDS }],
   });
@@ -84,9 +87,12 @@ export default function BoardsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-blue-100 py-8 px-4">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-center text-blue-800 mb-10">
-          Kanban Boards
-        </h1>
+        {/* header */}
+        <div className="flex justify-between items-center mb-10">
+          <h1 className="text-4xl font-bold text-blue-800">Kanban Boards</h1>
+          <LogoutButton />
+        </div>
+
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="space-y-12">
             {data.boards.map((board: any) => (
@@ -107,5 +113,13 @@ export default function BoardsPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ProtectedBoardsPage() {
+  return (
+    <AuthGuard>
+      <BoardsPageContent />
+    </AuthGuard>
   );
 }
