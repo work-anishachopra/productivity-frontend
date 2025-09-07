@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { gql, useMutation } from "@apollo/client";
 import { useRouter } from "next/navigation";
+import { isTokenValid } from "../../components/utils/isValidToken";
 
 const LOGIN_MUTATION = gql`
   mutation Login($username: String!, $password: String!) {
@@ -25,8 +26,10 @@ export default function LoginForm() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("token");
-      if (token) {
-        router.replace("/boards"); // Redirect if already logged-in
+      if (isTokenValid(token)) {
+        router.replace("/boards"); // Redirect if valid token
+      } else {
+        localStorage.removeItem("token"); // Clean invalid token
       }
     }
   }, [router]);
@@ -37,10 +40,11 @@ export default function LoginForm() {
       const { data } = await login({ variables: { username, password } });
       if (data?.login?.token) {
         localStorage.setItem("token", data.login.token);
-        window.location.href = "/boards"; // force full page reload
+        window.location.href = "/boards";
       }
     } catch (err) {
       console.error("Login error:", err);
+      alert("Login failed. Please check your credentials.");
     }
   };
 

@@ -2,36 +2,64 @@ import { useState } from "react";
 import { useMutation } from "@apollo/client";
 import { ADD_LIST, UPDATE_BOARD } from "../../../lib/graphql";
 import List from "./List";
+import { DeleteModalType } from "../../components/types";
 
-export default function Board({
-  board,
-  setDeleteModal,
-}: {
-  board: any;
-  setDeleteModal: any;
-}) {
+export interface TaskType {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
+export interface ListType {
+  id: string;
+  title: string;
+  tasks: TaskType[];
+}
+
+export interface BoardType {
+  id: string;
+  title: string;
+  lists: ListType[];
+}
+
+interface BoardProps {
+  board: BoardType;
+  setDeleteModal: (modal: DeleteModalType) => void;
+}
+
+export default function Board({ board, setDeleteModal }: BoardProps) {
   const [editingBoardId, setEditingBoardId] = useState<string | null>(null);
   const [editingBoardTitle, setEditingBoardTitle] = useState("");
   const [listInput, setListInput] = useState("");
   const [addList] = useMutation(ADD_LIST, {
-    refetchQueries: [{ query: ADD_LIST }],
+    refetchQueries: ["GetBoards"],
   });
   const [updateBoard] = useMutation(UPDATE_BOARD, {
-    refetchQueries: [{ query: UPDATE_BOARD }],
+    refetchQueries: ["GetBoards"],
   });
 
   const handleUpdateBoard = async (id: string) => {
     if (editingBoardTitle.trim()) {
-      await updateBoard({ variables: { id, title: editingBoardTitle } });
-      setEditingBoardId(null);
-      setEditingBoardTitle("");
+      try {
+        await updateBoard({ variables: { id, title: editingBoardTitle } });
+        setEditingBoardId(null);
+        setEditingBoardTitle("");
+      } catch (error) {
+        console.error("Failed to update board:", error);
+        alert("Error updating board. Please try again.");
+      }
     }
   };
 
   const handleAddList = async (boardId: string) => {
     if (listInput.trim()) {
-      await addList({ variables: { boardId, title: listInput } });
-      setListInput("");
+      try {
+        await addList({ variables: { boardId, title: listInput } });
+        setListInput("");
+      } catch (error) {
+        console.error("Failed to add list:", error);
+        alert("Error adding list. Please try again.");
+      }
     }
   };
 
@@ -45,6 +73,7 @@ export default function Board({
               value={editingBoardTitle}
               onChange={(e) => setEditingBoardTitle(e.target.value)}
               className="px-2 py-1 border border-blue-300 rounded focus:ring-2 focus:ring-blue-200"
+              autoFocus
             />
             <button
               onClick={() => handleUpdateBoard(board.id)}
@@ -71,6 +100,7 @@ export default function Board({
                   setEditingBoardTitle(board.title);
                 }}
                 className="px-2 py-1 bg-yellow-400 text-white rounded"
+                aria-label="Edit board title"
               >
                 ✏️
               </button>
@@ -83,6 +113,7 @@ export default function Board({
                   })
                 }
                 className="px-2 py-1 bg-red-600 text-white rounded"
+                aria-label="Delete board"
               >
                 🗑️
               </button>
@@ -101,12 +132,14 @@ export default function Board({
         <button
           onClick={() => handleAddList(board.id)}
           className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded font-semibold"
+          aria-label="Add list"
+          disabled={listInput.trim() === ""}
         >
           ➕ Add List
         </button>
       </div>
       <div className="flex gap-6 overflow-x-auto pb-4">
-        {board.lists.map((list: any) => (
+        {board.lists.map((list) => (
           <List key={list.id} list={list} setDeleteModal={setDeleteModal} />
         ))}
       </div>

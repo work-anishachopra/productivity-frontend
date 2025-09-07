@@ -15,27 +15,28 @@ import Board from "./Board";
 import DeleteModal from "./DeleteModal";
 import AuthGuard from "../../components/AuthGuard";
 import LogoutButton from "../../components/LogoutButton";
+import { DeleteModalType } from "../../components/types";
 
 function BoardsPageContent() {
   const { loading, error, data } = useQuery(GET_BOARDS);
   const [moveTask] = useMutation(MOVE_TASK, {
-    refetchQueries: [{ query: GET_BOARDS }],
+    refetchQueries: ["GetBoards"],
   });
   const [deleteBoard] = useMutation(DELETE_BOARD, {
-    refetchQueries: [{ query: GET_BOARDS }],
+    refetchQueries: ["GetBoards"],
   });
   const [deleteList] = useMutation(DELETE_LIST, {
-    refetchQueries: [{ query: GET_BOARDS }],
+    refetchQueries: ["GetBoards"],
   });
   const [deleteTask] = useMutation(DELETE_TASK, {
-    refetchQueries: [{ query: GET_BOARDS }],
+    refetchQueries: ["GetBoards"],
   });
 
-  const [deleteModal, setDeleteModal] = useState<{
-    type: "board" | "list" | "task" | null;
-    id: string | null;
-    title: string;
-  }>({ type: null, id: null, title: "" });
+  const [deleteModal, setDeleteModal] = useState<DeleteModalType>({
+    type: null,
+    id: null,
+    title: "",
+  });
 
   const handleDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
@@ -62,15 +63,20 @@ function BoardsPageContent() {
   const confirmDelete = async () => {
     if (!deleteModal.id || !deleteModal.type) return;
 
-    if (deleteModal.type === "board") {
-      await deleteBoard({ variables: { id: deleteModal.id } });
-    } else if (deleteModal.type === "list") {
-      await deleteList({ variables: { id: deleteModal.id } });
-    } else if (deleteModal.type === "task") {
-      await deleteTask({ variables: { id: deleteModal.id } });
+    try {
+      if (deleteModal.type === "board") {
+        await deleteBoard({ variables: { id: deleteModal.id } });
+      } else if (deleteModal.type === "list") {
+        await deleteList({ variables: { id: deleteModal.id } });
+      } else if (deleteModal.type === "task") {
+        await deleteTask({ variables: { id: deleteModal.id } });
+      }
+    } catch (error) {
+      console.error("Delete failed:", error);
+      alert("Error deleting item. Please try again.");
+    } finally {
+      setDeleteModal({ type: null, id: null, title: "" });
     }
-
-    setDeleteModal({ type: null, id: null, title: "" });
   };
 
   if (loading)
