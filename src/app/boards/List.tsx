@@ -1,37 +1,31 @@
 import { useState } from "react";
-import { useMutation } from "@apollo/client";
 import Task from "./Task";
 import { Droppable } from "@hello-pangea/dnd";
 
 import { toast } from "react-toastify";
-import ClipLoader from "react-spinners/ClipLoader";
 
 //Interfaces
 import { DeleteModalType } from "../../types/common";
 import { ListProps } from "../../types/list";
 
 //Import query & mutations
-import { DELETE_LIST, UPDATE_LIST } from "../../../lib/graphql/mutations/list";
-import { ADD_TASK } from "../../../lib/graphql/mutations/task";
 import { GET_BOARDS } from "../../../lib/graphql/queries/board";
+
+//Import loader button
+import LoaderButton from "../../components/LoaderButton";
+
+// import hooks for useMutations
+import { useAddTask } from "@/hooks/useTaskMutations";
+import { useDeleteList, useUpdateList } from "@/hooks/useListMutations";
 
 export default function List({ list, setDeleteModal }: ListProps) {
   const [editingListId, setEditingListId] = useState<string | null>(null);
   const [editingListTitle, setEditingListTitle] = useState("");
   const [taskInput, setTaskInput] = useState("");
 
-  const [addTask, { loading: addingTask }] = useMutation(ADD_TASK, {
-    refetchQueries: ["GetBoards"],
-  });
-  const [updateList, { loading: updatingList }] = useMutation(UPDATE_LIST, {
-    refetchQueries: ["GetBoards"],
-  });
-  const [deleteListMutation, { loading: deletingList }] = useMutation(
-    DELETE_LIST,
-    {
-      refetchQueries: ["GetBoards"],
-    }
-  );
+  const [addTask, { loading: addingTask }] = useAddTask();
+  const [updateList, { loading: updatingList }] = useUpdateList();
+  const [deleteListMutation, { loading: deletingList }] = useDeleteList();
 
   const handleUpdateList = async (id: string) => {
     if (editingListTitle.trim()) {
@@ -123,24 +117,24 @@ export default function List({ list, setDeleteModal }: ListProps) {
                   autoFocus
                   disabled={updatingList}
                 />
-                <button
+                <LoaderButton
+                  loading={updatingList}
                   onClick={() => handleUpdateList(list.id)}
+                  loaderColor="#22c55e"
+                  loaderSize={16}
                   className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={updatingList}
                 >
-                  {updatingList ? (
-                    <ClipLoader size={14} color="#22c55e" />
-                  ) : (
-                    "Save"
-                  )}
-                </button>
-                <button
+                  Save
+                </LoaderButton>
+                <LoaderButton
+                  loading={false}
                   onClick={() => setEditingListId(null)}
                   className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
                   disabled={updatingList}
                 >
                   Cancel
-                </button>
+                </LoaderButton>
               </div>
             ) : (
               <>
@@ -148,22 +142,22 @@ export default function List({ list, setDeleteModal }: ListProps) {
                   {list.title}
                 </h3>
                 <div className="flex space-x-2">
-                  <button
+                  <LoaderButton
+                    loading={updatingList}
                     onClick={() => {
                       setEditingListId(list.id);
                       setEditingListTitle(list.title);
                     }}
-                    className="px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500"
+                    loaderColor="#ca8a04"
+                    loaderSize={14}
+                    className="px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={updatingList || deletingList}
                     aria-label="Edit list"
                   >
-                    {updatingList ? (
-                      <ClipLoader size={14} color="#ca8a04" />
-                    ) : (
-                      "✏️"
-                    )}
-                  </button>
-                  <button
+                    ✏️
+                  </LoaderButton>
+                  <LoaderButton
+                    loading={deletingList}
                     onClick={() =>
                       setDeleteModal({
                         type: "list",
@@ -171,16 +165,14 @@ export default function List({ list, setDeleteModal }: ListProps) {
                         title: list.title,
                       })
                     }
-                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                    loaderColor="#b91c1c"
+                    loaderSize={14}
+                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={deletingList || updatingList}
                     aria-label="Delete list"
                   >
-                    {deletingList ? (
-                      <ClipLoader size={14} color="#b91c1c" />
-                    ) : (
-                      "🗑️"
-                    )}
-                  </button>
+                    🗑️
+                  </LoaderButton>
                 </div>
               </>
             )}
@@ -195,13 +187,16 @@ export default function List({ list, setDeleteModal }: ListProps) {
               className="px-2 py-1 border border-gray-300 rounded flex-1 focus:ring-2 focus:ring-blue-400"
               disabled={addingTask}
             />
-            <button
+            <LoaderButton
+              loading={addingTask}
               onClick={() => handleAddTask(list.id)}
+              loaderColor="#ffffff"
+              loaderSize={16}
               className="bg-blue-600 text-white px-4 py-1 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={taskInput.trim() === "" || addingTask}
             >
-              {addingTask ? <ClipLoader size={16} color="#ffffff" /> : "＋"}
-            </button>
+              ＋
+            </LoaderButton>
           </div>
 
           <div className="space-y-3">

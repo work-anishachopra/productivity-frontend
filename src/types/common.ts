@@ -10,4 +10,7 @@ export interface LoaderButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading: boolean;
   children: ReactNode;
+  loaderColor?: string; // color of spinner
+  loaderSize?: number; // size of spinner
+  className?: string; // button classes (tailwind or css)
 }

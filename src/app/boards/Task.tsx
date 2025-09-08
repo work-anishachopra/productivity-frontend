@@ -3,36 +3,31 @@ import { useMutation } from "@apollo/client";
 
 import { Draggable } from "@hello-pangea/dnd";
 import { toast } from "react-toastify";
-import ClipLoader from "react-spinners/ClipLoader";
 
 //importing interfaces
 import { DeleteModalType } from "../../types/common";
 import { TaskProps } from "../../types/task";
 
 //Import query & mutations
-import {
-  TOGGLE_TASK_COMPLETION,
-  UPDATE_TASK,
-  DELETE_TASK,
-} from "../../../lib/graphql/mutations/task";
 import { GET_BOARDS } from "../../../lib/graphql/queries/board";
+
+//Import loader button
+import LoaderButton from "../../components/LoaderButton";
+
+// import hooks for useMutations
+import {
+  useDeleteTask,
+  useToggleTask,
+  useUpdateTask,
+} from "@/hooks/useTaskMutations";
 
 export default function Task({ task, index, setDeleteModal }: TaskProps) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTaskTitle, setEditingTaskTitle] = useState("");
 
-  const [toggleTask, { loading: toggling }] = useMutation(
-    TOGGLE_TASK_COMPLETION,
-    {
-      refetchQueries: ["GetBoards"],
-    }
-  );
-  const [updateTask, { loading: updating }] = useMutation(UPDATE_TASK, {
-    refetchQueries: ["GetBoards"],
-  });
-  const [deleteTaskMutation, { loading: deleting }] = useMutation(DELETE_TASK, {
-    refetchQueries: ["GetBoards"],
-  });
+  const [toggleTask, { loading: toggling }] = useToggleTask();
+  const [updateTask, { loading: updating }] = useUpdateTask();
+  const [deleteTaskMutation, { loading: deleting }] = useDeleteTask();
 
   const handleUpdateTask = async (id: string) => {
     if (editingTaskTitle.trim()) {
@@ -127,7 +122,15 @@ export default function Task({ task, index, setDeleteModal }: TaskProps) {
               onClick={toggleTaskCompletion}
             >
               {toggling ? (
-                <ClipLoader size={14} color="#3b82f6" />
+                <LoaderButton
+                  loading={true}
+                  loaderColor="#3b82f6"
+                  loaderSize={14}
+                  className="opacity-50"
+                >
+                  {/* placeholder content */}
+                  <span className="sr-only">Loading</span>
+                </LoaderButton>
               ) : editingTaskId === task.id ? (
                 <input
                   type="text"
@@ -145,16 +148,22 @@ export default function Task({ task, index, setDeleteModal }: TaskProps) {
                 <span>{task.title}</span>
               )}
             </div>
+
             <div className="flex space-x-2 ml-4">
-              <button
+              <LoaderButton
+                loading={updating}
                 onClick={() => setEditingTaskId(task.id)}
-                disabled={updating || deleting}
+                loaderColor="#ca8a04"
+                loaderSize={14}
                 className="text-yellow-600 hover:text-yellow-800 px-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={updating || deleting}
                 aria-label="Edit task"
               >
-                {updating ? <ClipLoader size={14} color="#ca8a04" /> : "✏️"}
-              </button>
-              <button
+                ✏️
+              </LoaderButton>
+
+              <LoaderButton
+                loading={deleting}
                 onClick={() =>
                   setDeleteModal({
                     type: "task",
@@ -162,12 +171,14 @@ export default function Task({ task, index, setDeleteModal }: TaskProps) {
                     title: task.title,
                   })
                 }
-                disabled={deleting || updating}
+                loaderColor="#b91c1c"
+                loaderSize={14}
                 className="text-red-600 hover:text-red-800 px-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={deleting || updating}
                 aria-label="Delete task"
               >
-                {deleting ? <ClipLoader size={14} color="#b91c1c" /> : "🗑️"}
-              </button>
+                🗑️
+              </LoaderButton>
             </div>
           </div>
         </div>

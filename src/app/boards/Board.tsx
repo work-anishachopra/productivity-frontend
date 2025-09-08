@@ -1,23 +1,18 @@
 import { useState } from "react";
-import { useMutation } from "@apollo/client";
 
 import List from "./List";
 
 import { toast } from "react-toastify";
-import ClipLoader from "react-spinners/ClipLoader";
+
+import LoaderButton from "../../components/LoaderButton";
 
 //  Import interfaces
 import { BoardProps } from "../../types/board";
 import { DeleteModalType } from "../../types/common";
 
 //Import Queries & Mutations
-import {
-  UPDATE_BOARD,
-  DELETE_BOARD,
-} from "../../../lib/graphql/mutations/board";
-
-import { ADD_LIST } from "../../../lib/graphql/mutations/list";
-
+import { useAddList } from "@/hooks/useListMutations";
+import { useDeleteBoard, useUpdateBoard } from "@/hooks/useBoardMutations";
 import { GET_BOARDS } from "../../../lib/graphql/queries/board";
 
 export default function Board({ board, setDeleteModal }: BoardProps) {
@@ -25,18 +20,9 @@ export default function Board({ board, setDeleteModal }: BoardProps) {
   const [editingBoardTitle, setEditingBoardTitle] = useState("");
   const [listInput, setListInput] = useState("");
 
-  const [addList, { loading: addingList }] = useMutation(ADD_LIST, {
-    refetchQueries: ["GetBoards"],
-  });
-  const [updateBoard, { loading: updatingBoard }] = useMutation(UPDATE_BOARD, {
-    refetchQueries: ["GetBoards"],
-  });
-  const [deleteBoardMutation, { loading: deletingBoard }] = useMutation(
-    DELETE_BOARD,
-    {
-      refetchQueries: ["GetBoards"],
-    }
-  );
+  const [addList, { loading: addingList }] = useAddList();
+  const [updateBoard, { loading: updatingBoard }] = useUpdateBoard();
+  const [deleteBoardMutation, { loading: deletingBoard }] = useDeleteBoard();
 
   const handleUpdateBoard = async (id: string) => {
     if (editingBoardTitle.trim()) {
@@ -132,17 +118,17 @@ export default function Board({ board, setDeleteModal }: BoardProps) {
               autoFocus
               disabled={updatingBoard}
             />
-            <button
+
+            <LoaderButton
+              loading={updatingBoard}
               onClick={() => handleUpdateBoard(board.id)}
+              loaderColor="#22c55e" // spinner color
+              loaderSize={16} // spinner size
               className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={updatingBoard}
             >
-              {updatingBoard ? (
-                <ClipLoader size={14} color="#22c55e" />
-              ) : (
-                "Save"
-              )}
-            </button>
+              Save
+            </LoaderButton>
+
             <button
               onClick={() => setEditingBoardId(null)}
               className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
@@ -157,22 +143,22 @@ export default function Board({ board, setDeleteModal }: BoardProps) {
               {board.title}
             </h2>
             <div className="flex space-x-2">
-              <button
+              <LoaderButton
+                loading={updatingBoard}
                 onClick={() => {
                   setEditingBoardId(board.id);
                   setEditingBoardTitle(board.title);
                 }}
-                className="px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500"
+                loaderColor="#ca8a04"
+                loaderSize={16}
+                className="px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={updatingBoard || deletingBoard}
-                aria-label="Edit board"
               >
-                {updatingBoard ? (
-                  <ClipLoader size={14} color="#ca8a04" />
-                ) : (
-                  "✏️"
-                )}
-              </button>
-              <button
+                ✏️
+              </LoaderButton>
+
+              <LoaderButton
+                loading={deletingBoard}
                 onClick={() =>
                   setDeleteModal({
                     type: "board",
@@ -180,16 +166,12 @@ export default function Board({ board, setDeleteModal }: BoardProps) {
                     title: board.title,
                   })
                 }
-                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                disabled={deletingBoard || updatingBoard}
-                aria-label="Delete board"
+                loaderColor="#b91c1c"
+                loaderSize={14}
+                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {deletingBoard ? (
-                  <ClipLoader size={14} color="#b91c1c" />
-                ) : (
-                  "🗑️"
-                )}
-              </button>
+                🗑️
+              </LoaderButton>
             </div>
           </>
         )}
@@ -204,17 +186,15 @@ export default function Board({ board, setDeleteModal }: BoardProps) {
           className="px-2 py-1 border border-gray-300 rounded flex-1 focus:ring-2 focus:ring-blue-400"
           disabled={addingList}
         />
-        <button
+        <LoaderButton
+          loading={addingList}
           onClick={() => handleAddList(board.id)}
+          loaderColor="#ffffff"
+          loaderSize={18}
           className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={listInput.trim() === "" || addingList}
         >
-          {addingList ? (
-            <ClipLoader size={16} color="#ffffff" />
-          ) : (
-            "➕ Add List"
-          )}
-        </button>
+          ➕ Add List
+        </LoaderButton>
       </div>
 
       <div className="flex gap-6 overflow-x-auto pb-6">

@@ -9,38 +9,28 @@ import DeleteModal from "./DeleteModal";
 import AuthGuard from "../../components/AuthGuard";
 import LogoutButton from "../../components/LogoutButton";
 import { toast } from "react-toastify";
-import ClipLoader from "react-spinners/ClipLoader";
+
+//Loading Button
+import LoaderButton from "../../components/LoaderButton";
 
 //Import Interfaces
 import { DeleteModalType } from "../../types/common";
 
 //Import query & mutations
 
-import { ADD_BOARD, DELETE_BOARD } from "../../../lib/graphql/mutations/board";
-
-import { DELETE_LIST } from "../../../lib/graphql/mutations/list";
-
-import { MOVE_TASK, DELETE_TASK } from "../../../lib/graphql/mutations/task";
-
 import { GET_BOARDS } from "../../../lib/graphql/queries/board";
+import { useAddBoard, useDeleteBoard } from "@/hooks/useBoardMutations";
+import { useDeleteTask, useMoveTask } from "@/hooks/useTaskMutations";
+import { useDeleteList } from "@/hooks/useListMutations";
 
 function BoardsPageContent() {
   const { loading, error, data } = useQuery(GET_BOARDS);
-  const [moveTask] = useMutation(MOVE_TASK, {
-    refetchQueries: ["GetBoards"],
-  });
-  const [deleteBoard] = useMutation(DELETE_BOARD, {
-    refetchQueries: ["GetBoards"],
-  });
-  const [deleteList] = useMutation(DELETE_LIST, {
-    refetchQueries: ["GetBoards"],
-  });
-  const [deleteTask] = useMutation(DELETE_TASK, {
-    refetchQueries: ["GetBoards"],
-  });
-  const [addBoard, { loading: addingBoard }] = useMutation(ADD_BOARD, {
-    refetchQueries: ["GetBoards"],
-  });
+
+  const [moveTask] = useMoveTask();
+  const [deleteBoard] = useDeleteBoard();
+  const [deleteList] = useDeleteList();
+  const [deleteTask] = useDeleteTask();
+  const [addBoard, { loading: addingBoard }] = useAddBoard();
 
   const [deleteModal, setDeleteModal] = useState<DeleteModalType>({
     type: null,
@@ -156,17 +146,16 @@ function BoardsPageContent() {
             onChange={(e) => setBoardInput(e.target.value)}
             disabled={addingBoard}
           />
-          <button
+          <LoaderButton
+            loading={addingBoard}
             onClick={handleAddBoard}
+            loaderColor="#ffffff"
+            loaderSize={18}
+            className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={boardInput.trim() === "" || addingBoard}
-            className="bg-green-600 hover:bg-green-700 text-white px-5 rounded font-semibold disabled:opacity-50"
           >
-            {addingBoard ? (
-              <ClipLoader size={18} color="#ffffff" />
-            ) : (
-              "➕ Add Board"
-            )}
-          </button>
+            ➕ Add Board
+          </LoaderButton>
         </div>
 
         <DragDropContext onDragEnd={handleDragEnd}>
