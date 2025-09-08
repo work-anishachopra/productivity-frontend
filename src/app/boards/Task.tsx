@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { useMutation } from "@apollo/client";
-import { TOGGLE_TASK_COMPLETION, UPDATE_TASK } from "../../../lib/graphql";
+import {
+  TOGGLE_TASK_COMPLETION,
+  UPDATE_TASK,
+  DELETE_TASK,
+  GET_BOARDS,
+} from "../../../lib/graphql";
+
 import { Draggable } from "@hello-pangea/dnd";
 import { DeleteModalType } from "../../components/types";
+import { toast } from "react-toastify";
+import ClipLoader from "react-spinners/ClipLoader";
 
 interface TaskType {
   id: string;
@@ -19,32 +27,85 @@ interface TaskProps {
 export default function Task({ task, index, setDeleteModal }: TaskProps) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTaskTitle, setEditingTaskTitle] = useState("");
-  const [toggleTask] = useMutation(TOGGLE_TASK_COMPLETION, {
+
+  const [toggleTask, { loading: toggling }] = useMutation(
+    TOGGLE_TASK_COMPLETION,
+    {
+      refetchQueries: ["GetBoards"],
+    }
+  );
+  const [updateTask, { loading: updating }] = useMutation(UPDATE_TASK, {
     refetchQueries: ["GetBoards"],
   });
-  const [updateTask] = useMutation(UPDATE_TASK, {
+  const [deleteTaskMutation, { loading: deleting }] = useMutation(DELETE_TASK, {
     refetchQueries: ["GetBoards"],
   });
 
   const handleUpdateTask = async (id: string) => {
     if (editingTaskTitle.trim()) {
       try {
-        await updateTask({ variables: { id, title: editingTaskTitle } });
+        await updateTask({
+          variables: { id, title: editingTaskTitle },
+          optimisticResponse: {
+            updateTask: {
+              __typename: "Task",
+              id,
+              title: editingTaskTitle,
+              completed: task.completed,
+            },
+          },
+        });
         setEditingTaskId(null);
         setEditingTaskTitle("");
       } catch (error) {
         console.error("Failed to update task:", error);
-        alert("Error updating task. Please try again.");
+        toast.error("Error updating task. Please try again.");
       }
     }
   };
 
   const toggleTaskCompletion = async () => {
     try {
-      await toggleTask({ variables: { taskId: task.id } });
+      await toggleTask({
+        variables: { taskId: task.id },
+        optimisticResponse: {
+          toggleTaskCompletion: {
+            __typename: "Task",
+            id: task.id,
+            title: task.title,
+            completed: !task.completed,
+          },
+        },
+        update(cache, { data }) {
+          const { toggleTaskCompletion } = data;
+          const cacheData: any = cache.readQuery({ query: GET_BOARDS });
+          if (!cacheData) return;
+          const newBoards = cacheData.boards.map((board: any) => ({
+            ...board,
+            lists: board.lists.map((list: any) => ({
+              ...list,
+              tasks: list.tasks.map((t: any) =>
+                t.id === toggleTaskCompletion.id
+                  ? { ...t, completed: toggleTaskCompletion.completed }
+                  : t
+              ),
+            })),
+          }));
+          cache.writeQuery({ query: GET_BOARDS, data: { boards: newBoards } });
+        },
+      });
     } catch (error) {
       console.error("Failed to toggle task completion:", error);
-      alert("Error updating task completion. Please try again.");
+      toast.error("Error updating task completion. Please try again.");
+    }
+  };
+
+  const handleDeleteTask = async (id: string) => {
+    try {
+      await deleteTaskMutation({ variables: { id } });
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+      toast.error("Error deleting task. Please try again.");
     }
   };
 
@@ -61,57 +122,60 @@ export default function Task({ task, index, setDeleteModal }: TaskProps) {
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          className={`mb-3 px-3 py-2 rounded-lg shadow border flex justify-between items-center bg-white transition ${
+          className={`mb-3 p-3 rounded-md shadow border bg-white cursor-pointer transition ${
             snapshot.isDragging ? "ring-2 ring-blue-400 scale-105" : ""
-          }`}
+          } ${task.completed ? "line-through text-gray-400 opacity-70" : ""}`}
         >
-          <div
-            className={`flex-1 cursor-pointer ${
-              task.completed ? "line-through text-gray-400" : ""
-            }`}
-            onClick={toggleTaskCompletion}
-          >
-            {editingTaskId === task.id ? (
-              <input
-                type="text"
-                value={editingTaskTitle}
-                onChange={(e) => setEditingTaskTitle(e.target.value)}
-                onBlur={() => handleUpdateTask(task.id)}
-                onKeyDown={onKeyDown}
-                className="border px-1 py-0.5 rounded"
-                autoFocus
-              />
-            ) : (
-              <>
-                <span
-                  onDoubleClick={() => {
-                    setEditingTaskId(task.id);
-                    setEditingTaskTitle(task.title);
-                  }}
-                >
-                  {task.title}
-                </span>
-                <span className="ml-2">{task.completed ? "✅" : "⬜"}</span>
-              </>
-            )}
-          </div>
-          <div className="flex gap-1 ml-2">
-            <button
-              onClick={() => setEditingTaskId(task.id)}
-              className="text-yellow-600 px-1"
-              aria-label="Edit task"
+          <div className="flex justify-between items-center">
+            <div
+              className={`flex-grow cursor-pointer ${
+                toggling ? "opacity-50 pointer-events-none" : ""
+              }`}
+              onClick={toggleTaskCompletion}
             >
-              ✏️
-            </button>
-            <button
-              onClick={() =>
-                setDeleteModal({ type: "task", id: task.id, title: task.title })
-              }
-              className="text-red-600 px-1"
-              aria-label="Delete task"
-            >
-              🗑️
-            </button>
+              {toggling ? (
+                <ClipLoader size={14} color="#3b82f6" />
+              ) : editingTaskId === task.id ? (
+                <input
+                  type="text"
+                  value={editingTaskTitle}
+                  onChange={(e) => setEditingTaskTitle(e.target.value)}
+                  onBlur={() => handleUpdateTask(task.id)}
+                  onKeyDown={onKeyDown}
+                  className={`border px-2 py-1 rounded w-full ${
+                    updating ? "opacity-50" : ""
+                  }`}
+                  autoFocus
+                  disabled={updating}
+                />
+              ) : (
+                <span>{task.title}</span>
+              )}
+            </div>
+            <div className="flex space-x-2 ml-4">
+              <button
+                onClick={() => setEditingTaskId(task.id)}
+                disabled={updating || deleting}
+                className="text-yellow-600 hover:text-yellow-800 px-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Edit task"
+              >
+                {updating ? <ClipLoader size={14} color="#ca8a04" /> : "✏️"}
+              </button>
+              <button
+                onClick={() =>
+                  setDeleteModal({
+                    type: "task",
+                    id: task.id,
+                    title: task.title,
+                  })
+                }
+                disabled={deleting || updating}
+                className="text-red-600 hover:text-red-800 px-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Delete task"
+              >
+                {deleting ? <ClipLoader size={14} color="#b91c1c" /> : "🗑️"}
+              </button>
+            </div>
           </div>
         </div>
       )}

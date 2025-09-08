@@ -1,8 +1,15 @@
 import { useState } from "react";
 import { useMutation } from "@apollo/client";
-import { ADD_LIST, UPDATE_BOARD } from "../../../lib/graphql";
+import {
+  ADD_LIST,
+  UPDATE_BOARD,
+  DELETE_BOARD,
+  GET_BOARDS,
+} from "../../../lib/graphql";
 import List from "./List";
 import { DeleteModalType } from "../../components/types";
+import { toast } from "react-toastify";
+import ClipLoader from "react-spinners/ClipLoader";
 
 export interface TaskType {
   id: string;
@@ -31,40 +38,88 @@ export default function Board({ board, setDeleteModal }: BoardProps) {
   const [editingBoardId, setEditingBoardId] = useState<string | null>(null);
   const [editingBoardTitle, setEditingBoardTitle] = useState("");
   const [listInput, setListInput] = useState("");
-  const [addList] = useMutation(ADD_LIST, {
+
+  const [addList, { loading: addingList }] = useMutation(ADD_LIST, {
     refetchQueries: ["GetBoards"],
   });
-  const [updateBoard] = useMutation(UPDATE_BOARD, {
+  const [updateBoard, { loading: updatingBoard }] = useMutation(UPDATE_BOARD, {
     refetchQueries: ["GetBoards"],
   });
+  const [deleteBoardMutation, { loading: deletingBoard }] = useMutation(
+    DELETE_BOARD,
+    {
+      refetchQueries: ["GetBoards"],
+    }
+  );
 
   const handleUpdateBoard = async (id: string) => {
     if (editingBoardTitle.trim()) {
       try {
-        await updateBoard({ variables: { id, title: editingBoardTitle } });
+        await updateBoard({
+          variables: { id, title: editingBoardTitle },
+          optimisticResponse: {
+            updateBoard: {
+              __typename: "Board",
+              id,
+              title: editingBoardTitle,
+              lists: board.lists,
+            },
+          },
+        });
         setEditingBoardId(null);
         setEditingBoardTitle("");
       } catch (error) {
         console.error("Failed to update board:", error);
-        alert("Error updating board. Please try again.");
+        toast.error("Error updating board. Please try again.");
       }
     }
   };
 
   const handleAddList = async (boardId: string) => {
     if (listInput.trim()) {
+      const tempId = "temp-id-" + Math.random().toString(36).substr(2, 9);
       try {
-        await addList({ variables: { boardId, title: listInput } });
+        await addList({
+          variables: { boardId, title: listInput },
+          optimisticResponse: {
+            addList: {
+              __typename: "List",
+              id: tempId,
+              title: listInput,
+              tasks: [],
+            },
+          },
+          update(cache, { data: { addList } }) {
+            const existingData: any = cache.readQuery({ query: GET_BOARDS });
+            if (!existingData) return;
+            const newBoards = existingData.boards.map((b: any) =>
+              b.id === boardId ? { ...b, lists: [...b.lists, addList] } : b
+            );
+            cache.writeQuery({
+              query: GET_BOARDS,
+              data: { boards: newBoards },
+            });
+          },
+        });
         setListInput("");
       } catch (error) {
         console.error("Failed to add list:", error);
-        alert("Error adding list. Please try again.");
+        toast.error("Error adding list. Please try again.");
       }
     }
   };
 
+  const handleDeleteBoard = async (id: string) => {
+    try {
+      await deleteBoardMutation({ variables: { id } });
+    } catch (error) {
+      console.error("Failed to delete board:", error);
+      toast.error("Error deleting board. Please try again.");
+    }
+  };
+
   return (
-    <div className="bg-white shadow-xl rounded-2xl p-6 mb-12 border border-gray-200">
+    <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-gray-200 max-w-full overflow-x-auto">
       <div className="flex justify-between items-center mb-6">
         {editingBoardId === board.id ? (
           <div className="flex gap-2">
@@ -72,37 +127,49 @@ export default function Board({ board, setDeleteModal }: BoardProps) {
               type="text"
               value={editingBoardTitle}
               onChange={(e) => setEditingBoardTitle(e.target.value)}
-              className="px-2 py-1 border border-blue-300 rounded focus:ring-2 focus:ring-blue-200"
+              className="px-2 py-1 border border-blue-300 rounded focus:ring-2 focus:ring-blue-400"
               autoFocus
+              disabled={updatingBoard}
             />
             <button
               onClick={() => handleUpdateBoard(board.id)}
-              className="px-2 py-1 bg-green-500 text-white rounded"
+              className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={updatingBoard}
             >
-              ✅
+              {updatingBoard ? (
+                <ClipLoader size={14} color="#22c55e" />
+              ) : (
+                "Save"
+              )}
             </button>
             <button
               onClick={() => setEditingBoardId(null)}
-              className="px-2 py-1 bg-gray-400 text-white rounded"
+              className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+              disabled={updatingBoard}
             >
-              ❌
+              Cancel
             </button>
           </div>
         ) : (
           <>
-            <h2 className="text-2xl font-semibold text-blue-700">
+            <h2 className="text-xl font-semibold text-blue-700">
               {board.title}
             </h2>
-            <div className="space-x-2">
+            <div className="flex space-x-2">
               <button
                 onClick={() => {
                   setEditingBoardId(board.id);
                   setEditingBoardTitle(board.title);
                 }}
-                className="px-2 py-1 bg-yellow-400 text-white rounded"
-                aria-label="Edit board title"
+                className="px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500"
+                disabled={updatingBoard || deletingBoard}
+                aria-label="Edit board"
               >
-                ✏️
+                {updatingBoard ? (
+                  <ClipLoader size={14} color="#ca8a04" />
+                ) : (
+                  "✏️"
+                )}
               </button>
               <button
                 onClick={() =>
@@ -112,33 +179,44 @@ export default function Board({ board, setDeleteModal }: BoardProps) {
                     title: board.title,
                   })
                 }
-                className="px-2 py-1 bg-red-600 text-white rounded"
+                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                disabled={deletingBoard || updatingBoard}
                 aria-label="Delete board"
               >
-                🗑️
+                {deletingBoard ? (
+                  <ClipLoader size={14} color="#b91c1c" />
+                ) : (
+                  "🗑️"
+                )}
               </button>
             </div>
           </>
         )}
       </div>
-      <div className="flex gap-2 mb-5">
+
+      <div className="flex gap-6 mb-5">
         <input
           type="text"
           placeholder="Add new list..."
           value={listInput}
           onChange={(e) => setListInput(e.target.value)}
-          className="px-2 py-1 border border-gray-300 rounded flex-1 focus:ring-2 focus:ring-blue-300"
+          className="px-2 py-1 border border-gray-300 rounded flex-1 focus:ring-2 focus:ring-blue-400"
+          disabled={addingList}
         />
         <button
           onClick={() => handleAddList(board.id)}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded font-semibold"
-          aria-label="Add list"
-          disabled={listInput.trim() === ""}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={listInput.trim() === "" || addingList}
         >
-          ➕ Add List
+          {addingList ? (
+            <ClipLoader size={16} color="#ffffff" />
+          ) : (
+            "➕ Add List"
+          )}
         </button>
       </div>
-      <div className="flex gap-6 overflow-x-auto pb-4">
+
+      <div className="flex gap-6 overflow-x-auto pb-6">
         {board.lists.map((list) => (
           <List key={list.id} list={list} setDeleteModal={setDeleteModal} />
         ))}

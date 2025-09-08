@@ -10,12 +10,15 @@ import {
   DELETE_BOARD,
   DELETE_LIST,
   DELETE_TASK,
+  ADD_BOARD,
 } from "../../../lib/graphql";
 import Board from "./Board";
 import DeleteModal from "./DeleteModal";
 import AuthGuard from "../../components/AuthGuard";
 import LogoutButton from "../../components/LogoutButton";
 import { DeleteModalType } from "../../components/types";
+import { toast } from "react-toastify";
+import ClipLoader from "react-spinners/ClipLoader";
 
 function BoardsPageContent() {
   const { loading, error, data } = useQuery(GET_BOARDS);
@@ -31,12 +34,17 @@ function BoardsPageContent() {
   const [deleteTask] = useMutation(DELETE_TASK, {
     refetchQueries: ["GetBoards"],
   });
+  const [addBoard, { loading: addingBoard }] = useMutation(ADD_BOARD, {
+    refetchQueries: ["GetBoards"],
+  });
 
   const [deleteModal, setDeleteModal] = useState<DeleteModalType>({
     type: null,
     id: null,
     title: "",
   });
+
+  const [boardInput, setBoardInput] = useState("");
 
   const handleDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
@@ -57,6 +65,7 @@ function BoardsPageContent() {
       });
     } catch (err) {
       console.error("Error moving task:", err);
+      toast.error("Error moving task. Please try again.");
     }
   };
 
@@ -73,9 +82,41 @@ function BoardsPageContent() {
       }
     } catch (error) {
       console.error("Delete failed:", error);
-      alert("Error deleting item. Please try again.");
+      toast.error("Error deleting item. Please try again.");
     } finally {
       setDeleteModal({ type: null, id: null, title: "" });
+    }
+  };
+
+  const handleAddBoard = async () => {
+    if (!boardInput.trim()) return;
+    const tempId = "temp-id-" + Math.random().toString(36).substr(2, 9);
+    try {
+      await addBoard({
+        variables: { title: boardInput },
+        optimisticResponse: {
+          addBoard: {
+            __typename: "Board",
+            id: tempId,
+            title: boardInput,
+            lists: [],
+          },
+        },
+        update(cache, { data: { addBoard } }) {
+          const existingData: any = cache.readQuery({ query: GET_BOARDS });
+          if (!existingData) return;
+          cache.writeQuery({
+            query: GET_BOARDS,
+            data: {
+              boards: [...existingData.boards, addBoard],
+            },
+          });
+        },
+      });
+      setBoardInput("");
+    } catch (error) {
+      console.error("Failed to add board:", error);
+      toast.error("Error adding board. Please try again.");
     }
   };
 
@@ -97,6 +138,29 @@ function BoardsPageContent() {
         <div className="flex justify-between items-center mb-10">
           <h1 className="text-4xl font-bold text-blue-800">Kanban Boards</h1>
           <LogoutButton />
+        </div>
+
+        {/* Add Board Input */}
+        <div className="flex mb-8 gap-3">
+          <input
+            type="text"
+            placeholder="Add new board..."
+            className="flex-1 px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            value={boardInput}
+            onChange={(e) => setBoardInput(e.target.value)}
+            disabled={addingBoard}
+          />
+          <button
+            onClick={handleAddBoard}
+            disabled={boardInput.trim() === "" || addingBoard}
+            className="bg-green-600 hover:bg-green-700 text-white px-5 rounded font-semibold disabled:opacity-50"
+          >
+            {addingBoard ? (
+              <ClipLoader size={18} color="#ffffff" />
+            ) : (
+              "➕ Add Board"
+            )}
+          </button>
         </div>
 
         <DragDropContext onDragEnd={handleDragEnd}>
