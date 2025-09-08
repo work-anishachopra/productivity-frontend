@@ -86,11 +86,13 @@ export default function List({ list, setDeleteModal }: ListProps) {
           },
           update(cache, { data: { addTask } }) {
             const existingData: any = cache.readQuery({ query: GET_BOARDS });
-            if (!existingData) return;
+            if (!existingData || !existingData.boards) return;
             const newBoards = existingData.boards.map((b: any) => ({
               ...b,
               lists: b.lists.map((l: any) =>
-                l.id === listId ? { ...l, tasks: [...l.tasks, addTask] } : l
+                l.id === listId
+                  ? { ...l, tasks: [...(l.tasks || []), addTask] }
+                  : l
               ),
             }));
             cache.writeQuery({

@@ -91,10 +91,25 @@ export default function Board({ board, setDeleteModal }: BoardProps) {
           },
           update(cache, { data: { addList } }) {
             const existingData: any = cache.readQuery({ query: GET_BOARDS });
-            if (!existingData) return;
+            if (!existingData || !existingData.boards) return;
+
             const newBoards = existingData.boards.map((b: any) =>
-              b.id === boardId ? { ...b, lists: [...b.lists, addList] } : b
+              b.id === boardId
+                ? {
+                    ...b,
+                    lists: [
+                      ...(Array.isArray(b.lists) ? b.lists : []),
+                      {
+                        ...addList,
+                        tasks: Array.isArray(addList.tasks)
+                          ? addList.tasks
+                          : [],
+                      },
+                    ],
+                  }
+                : b
             );
+
             cache.writeQuery({
               query: GET_BOARDS,
               data: { boards: newBoards },

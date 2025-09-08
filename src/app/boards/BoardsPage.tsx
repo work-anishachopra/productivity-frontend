@@ -100,16 +100,18 @@ function BoardsPageContent() {
             id: tempId,
             title: boardInput,
             lists: [],
+            userId: "temp-user", // Add userId if needed, placeholder
           },
         },
         update(cache, { data: { addBoard } }) {
           const existingData: any = cache.readQuery({ query: GET_BOARDS });
-          if (!existingData) return;
+          if (!existingData || !existingData.boards) return;
+
+          const newBoards = [...existingData.boards, addBoard];
+
           cache.writeQuery({
             query: GET_BOARDS,
-            data: {
-              boards: [...existingData.boards, addBoard],
-            },
+            data: { boards: newBoards },
           });
         },
       });
