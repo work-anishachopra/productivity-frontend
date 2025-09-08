@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { isTokenValid } from "../components/utils/isValidToken";
+import { isTokenValid } from "../utils/isValidToken";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();

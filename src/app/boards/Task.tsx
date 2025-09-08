@@ -1,28 +1,21 @@
 import { useState } from "react";
 import { useMutation } from "@apollo/client";
+
+import { Draggable } from "@hello-pangea/dnd";
+import { toast } from "react-toastify";
+import ClipLoader from "react-spinners/ClipLoader";
+
+//importing interfaces
+import { DeleteModalType } from "../../types/common";
+import { TaskProps } from "../../types/task";
+
+//Import query & mutations
 import {
   TOGGLE_TASK_COMPLETION,
   UPDATE_TASK,
   DELETE_TASK,
-  GET_BOARDS,
-} from "../../../lib/graphql";
-
-import { Draggable } from "@hello-pangea/dnd";
-import { DeleteModalType } from "../../components/types";
-import { toast } from "react-toastify";
-import ClipLoader from "react-spinners/ClipLoader";
-
-interface TaskType {
-  id: string;
-  title: string;
-  completed: boolean;
-}
-
-interface TaskProps {
-  task: TaskType;
-  index: number;
-  setDeleteModal: (modal: DeleteModalType) => void;
-}
+} from "../../../lib/graphql/mutations/task";
+import { GET_BOARDS } from "../../../lib/graphql/queries/board";
 
 export default function Task({ task, index, setDeleteModal }: TaskProps) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);

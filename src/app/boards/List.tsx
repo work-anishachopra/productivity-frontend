@@ -1,33 +1,19 @@
 import { useState } from "react";
 import { useMutation } from "@apollo/client";
-import {
-  ADD_TASK,
-  UPDATE_LIST,
-  DELETE_LIST,
-  GET_BOARDS,
-} from "../../../lib/graphql";
 import Task from "./Task";
 import { Droppable } from "@hello-pangea/dnd";
-import { DeleteModalType } from "../../components/types";
+
 import { toast } from "react-toastify";
 import ClipLoader from "react-spinners/ClipLoader";
 
-export interface TaskType {
-  id: string;
-  title: string;
-  completed: boolean;
-}
+//Interfaces
+import { DeleteModalType } from "../../types/common";
+import { ListProps } from "../../types/list";
 
-export interface ListType {
-  id: string;
-  title: string;
-  tasks: TaskType[];
-}
-
-interface ListProps {
-  list: ListType;
-  setDeleteModal: (modal: DeleteModalType) => void;
-}
+//Import query & mutations
+import { DELETE_LIST, UPDATE_LIST } from "../../../lib/graphql/mutations/list";
+import { ADD_TASK } from "../../../lib/graphql/mutations/task";
+import { GET_BOARDS } from "../../../lib/graphql/queries/board";
 
 export default function List({ list, setDeleteModal }: ListProps) {
   const [editingListId, setEditingListId] = useState<string | null>(null);

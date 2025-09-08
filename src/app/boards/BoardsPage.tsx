@@ -4,21 +4,25 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@apollo/client";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 
-import {
-  GET_BOARDS,
-  MOVE_TASK,
-  DELETE_BOARD,
-  DELETE_LIST,
-  DELETE_TASK,
-  ADD_BOARD,
-} from "../../../lib/graphql";
 import Board from "./Board";
 import DeleteModal from "./DeleteModal";
 import AuthGuard from "../../components/AuthGuard";
 import LogoutButton from "../../components/LogoutButton";
-import { DeleteModalType } from "../../components/types";
 import { toast } from "react-toastify";
 import ClipLoader from "react-spinners/ClipLoader";
+
+//Import Interfaces
+import { DeleteModalType } from "../../types/common";
+
+//Import query & mutations
+
+import { ADD_BOARD, DELETE_BOARD } from "../../../lib/graphql/mutations/board";
+
+import { DELETE_LIST } from "../../../lib/graphql/mutations/list";
+
+import { MOVE_TASK, DELETE_TASK } from "../../../lib/graphql/mutations/task";
+
+import { GET_BOARDS } from "../../../lib/graphql/queries/board";
 
 function BoardsPageContent() {
   const { loading, error, data } = useQuery(GET_BOARDS);

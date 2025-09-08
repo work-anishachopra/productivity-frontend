@@ -1,38 +1,24 @@
 import { useState } from "react";
 import { useMutation } from "@apollo/client";
-import {
-  ADD_LIST,
-  UPDATE_BOARD,
-  DELETE_BOARD,
-  GET_BOARDS,
-} from "../../../lib/graphql";
+
 import List from "./List";
-import { DeleteModalType } from "../../components/types";
+
 import { toast } from "react-toastify";
 import ClipLoader from "react-spinners/ClipLoader";
 
-export interface TaskType {
-  id: string;
-  title: string;
-  completed: boolean;
-}
+//  Import interfaces
+import { BoardProps } from "../../types/board";
+import { DeleteModalType } from "../../types/common";
 
-export interface ListType {
-  id: string;
-  title: string;
-  tasks: TaskType[];
-}
+//Import Queries & Mutations
+import {
+  UPDATE_BOARD,
+  DELETE_BOARD,
+} from "../../../lib/graphql/mutations/board";
 
-export interface BoardType {
-  id: string;
-  title: string;
-  lists: ListType[];
-}
+import { ADD_LIST } from "../../../lib/graphql/mutations/list";
 
-interface BoardProps {
-  board: BoardType;
-  setDeleteModal: (modal: DeleteModalType) => void;
-}
+import { GET_BOARDS } from "../../../lib/graphql/queries/board";
 
 export default function Board({ board, setDeleteModal }: BoardProps) {
   const [editingBoardId, setEditingBoardId] = useState<string | null>(null);

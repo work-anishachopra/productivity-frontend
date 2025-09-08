@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { gql, useMutation } from "@apollo/client";
 import { useRouter } from "next/navigation";
-import { isTokenValid } from "../../components/utils/isValidToken";
+import { isTokenValid } from "../../utils/isValidToken";
 import { toast } from "react-toastify";
 
 const LOGIN_MUTATION = gql`
